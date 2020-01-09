@@ -163,15 +163,16 @@ func getPackageName(f string) string {
 	return f
 }
 
+const DefaultSkip = 0
+
 // getCaller retrieves the name of the first non-logrus calling function
-func getCaller() *runtime.Frame {
+func getSkipCaller(skipCall int) *runtime.Frame {
 
 	// cache this package's fully-qualified name
 	callerInitOnce.Do(func() {
 		pcs := make([]uintptr, 2)
 		_ = runtime.Callers(0, pcs)
 		logrusPackage = getPackageName(runtime.FuncForPC(pcs[1]).Name())
-
 		// now that we have the cache, we can skip a minimum count of known-logrus functions
 		// XXX this is dubious, the number of frames may vary
 		minimumCallerDepth = knownLogrusFrames
@@ -180,19 +181,33 @@ func getCaller() *runtime.Frame {
 	// Restrict the lookback frames to avoid runaway lookups
 	pcs := make([]uintptr, maximumCallerDepth)
 	depth := runtime.Callers(minimumCallerDepth, pcs)
+
 	frames := runtime.CallersFrames(pcs[:depth])
 
+	var skip = skipCall
+	var currentSkip = 0
 	for f, again := frames.Next(); again; f, again = frames.Next() {
+
+		// fmt.Println(f.File,f.Line,f.Function)
 		pkg := getPackageName(f.Function)
 
-		// If the caller isn't part of this package, we're done
+		//If the caller isn't part of this package, we're done
 		if pkg != logrusPackage {
-			return &f //nolint:scopelint
+			if currentSkip == skip {
+				return &f //nolint:scopelint
+			}
+			currentSkip++
 		}
 	}
+	return nil
 
 	// if we got here, we failed to find the caller's context
 	return nil
+}
+
+// getCaller retrieves the name of the first non-logrus calling function
+func getCaller() *runtime.Frame {
+	return getSkipCaller(DefaultSkip)
 }
 
 func (entry Entry) HasCaller() (has bool) {
@@ -218,7 +233,7 @@ func (entry Entry) log(level Level, msg string) {
 	entry.Level = level
 	entry.Message = msg
 	if entry.Logger.ReportCaller {
-		entry.Caller = getCaller()
+		entry.Caller = getSkipCaller(entry.Logger.SkipCaller)
 	}
 
 	entry.fireHooks()
