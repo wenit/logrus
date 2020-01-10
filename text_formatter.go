@@ -274,11 +274,11 @@ func (f *TextFormatter) printColored(b *bytes.Buffer, entry *Entry, keys []strin
 	}
 
 	if f.DisableTimestamp {
-		fmt.Fprintf(b, "\x1b[%dm%s\x1b[0m%s %-44s ", levelColor, levelText, caller, entry.Message)
+		fmt.Fprintf(b, "\x1b[%dm%s\x1b[0m %s %-44s ", levelColor, levelText, caller, entry.Message)
 	} else if !f.FullTimestamp {
-		fmt.Fprintf(b, "\x1b[%dm%s\x1b[0m[%04d]%s %-44s ", levelColor, levelText, int(entry.Time.Sub(baseTimestamp)/time.Second), caller, entry.Message)
+		fmt.Fprintf(b, "\x1b[%dm%s\x1b[0m [%04d] %s %-44s ", levelColor, levelText, int(entry.Time.Sub(baseTimestamp)/time.Second), caller, entry.Message)
 	} else {
-		fmt.Fprintf(b, "\x1b[%dm%s\x1b[0m[%s]%s %-44s ", levelColor, levelText, entry.Time.Format(timestampFormat), caller, entry.Message)
+		fmt.Fprintf(b, "\x1b[%dm%s\x1b[0m [%s] %s %-44s ", levelColor, levelText, entry.Time.Format(timestampFormat), caller, entry.Message)
 	}
 	for _, k := range keys {
 		v := data[k]
@@ -319,6 +319,8 @@ func (f *TextFormatter) appendValue(b *bytes.Buffer, value interface{}) {
 	if !ok {
 		stringVal = fmt.Sprint(value)
 	}
+
+	stringVal = stringVal + " "
 
 	if !f.needsQuoting(stringVal) {
 		b.WriteString(stringVal)
