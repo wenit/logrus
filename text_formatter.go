@@ -141,9 +141,7 @@ func (f *TextFormatter) Format(entry *Entry) ([]byte, error) {
 		fixedKeys = append(fixedKeys, f.FieldMap.resolve(FieldKeyTime))
 	}
 	fixedKeys = append(fixedKeys, f.FieldMap.resolve(FieldKeyLevel))
-	if entry.Message != "" {
-		fixedKeys = append(fixedKeys, f.FieldMap.resolve(FieldKeyMsg))
-	}
+
 	if entry.err != "" {
 		fixedKeys = append(fixedKeys, f.FieldMap.resolve(FieldKeyLogrusError))
 	}
@@ -179,6 +177,10 @@ func (f *TextFormatter) Format(entry *Entry) ([]byte, error) {
 		fixedKeys = append(fixedKeys, keys...)
 	}
 
+	if entry.Message != "" {
+		fixedKeys = append(fixedKeys, f.FieldMap.resolve(FieldKeyMsg))
+	}
+
 	var b *bytes.Buffer
 	if entry.Buffer != nil {
 		b = entry.Buffer
@@ -203,14 +205,14 @@ func (f *TextFormatter) Format(entry *Entry) ([]byte, error) {
 				value = entry.Time.Format(timestampFormat)
 			case key == f.FieldMap.resolve(FieldKeyLevel):
 				value = entry.Level.String()
-			case key == f.FieldMap.resolve(FieldKeyMsg):
-				value = entry.Message
 			case key == f.FieldMap.resolve(FieldKeyLogrusError):
 				value = entry.err
 			case key == f.FieldMap.resolve(FieldKeyFunc) && entry.HasCaller():
 				value = funcVal
 			case key == f.FieldMap.resolve(FieldKeyFile) && entry.HasCaller():
 				value = fileVal
+			case key == f.FieldMap.resolve(FieldKeyMsg):
+				value = entry.Message
 			default:
 				value = data[key]
 			}
